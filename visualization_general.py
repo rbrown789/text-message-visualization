@@ -39,7 +39,7 @@ df['datetime'] = pd.to_datetime(df.datetimestr,format = '%b %d, %Y, %I:%M %p')
 
 
 nuser = len(df.user.unique())
-cmap = cm.get_cmap('Set3', nuser)
+cmap = cm.get_cmap('tab10', nuser)
 colors = [matplotlib.colors.rgb2hex(cmap(i)[:3]) for i in range(cmap.N)]
 
 
@@ -347,8 +347,8 @@ leg = weekplot.legend(frameon=False)
 for text in leg.get_texts():
     plt.setp(text, color = globgrey)
 weekplot.set_xlabel("")
-weekplot.set_xticks(xticklocs, minor=False)
-weekplot.set_xticklabels(xticklabs,size='large')
+# weekplot.set_xticks(xticklocs, minor=False)
+# weekplot.set_xticklabels(xticklabs,size='large')
 weekplot.set_title('Message Frequency By Week', size='xx-large',horizontalalignment='center',
                    position=(0.5, 0.88),color=globgrey)
 
