@@ -25,6 +25,10 @@ from os import path
 import fbhtml_to_df as fbparse
 
 datadict = fbparse.fbhtml_to_df(save=True)
+
+# df = pd.read_csv("C://Users//rbrow//Downloads//facebook-rbrown789//messages//inbox//CaitlinEliseFox_p8iZOwaGag//message_1.csv")  
+# df = df.applymap(str) 
+
 df = datadict['df']
 dirnm = datadict['dirpath']
 filepref = datadict['filepref']
@@ -207,7 +211,6 @@ df['date'] = df['datetime'].dt.date
 df['dow'] = df['datetime'].dt.dayofweek
 df['hour'] = df.datetime.dt.hour
 
-counts_user_dow = df.groupby(["dow","user"]).count()['body'].unstack(fill_value=0)
 counts_user_date = df.groupby(["date","user"]).count()['body'].unstack(fill_value=0)
 
 # generate dataframe of zeros for all dates with no messages and append 
@@ -221,8 +224,8 @@ datelst = list(counts_user_date.index)
 alldatelst = list(perdelta(min(datelst),max(datelst),timedelta(days=1)))
 alldays = [i.day for i in alldatelst]
 allmos = [i.month for i in alldatelst]
-xticklocs = list(compress(alldatelst,[alldays[i]==1 and allmos[i] in [1,5,9] for i in range(0,len(alldatelst))]))
-xticklabs = [i.strftime("%b %Y") for i in xticklocs]
+xticklocs = list(compress(alldatelst,[alldays[i]==1 and allmos[i] in [1,7] for i in range(0,len(alldatelst))]))
+xticklabs = [i.strftime("%m/%y") for i in xticklocs]
 
 ## week plot
 df['datemin7'] = pd.to_datetime(df['date']) - pd.to_timedelta(7, unit='d')
@@ -239,7 +242,15 @@ counts_user_wk = pd.concat([counts_user_wk,nomsgwkdf])
 ##########################################################################################################
 
 # generate radar plot data by hour
-countsbyhr = df.groupby(['hour','user']).count()['body'].unstack(fill_value=0)  
+countsbyhr = df.groupby(['hour','user']).count()['body'].unstack(fill_value=0)
+hrlst = list(countsbyhr.index)
+allhrlst = list(perdelta(0,24,1))
+nomsghrs = list(compress(allhrlst,  [i not in hrlst for i in allhrlst]))
+if(len(nomsghrs) > 0): 
+    nomsgdf = pd.DataFrame(dict([(i,[0]*len(nomsghrs)) for i in list(countsbyhr.columns)]),index=nomsghrs)
+    nomsgdf = nomsgdf.rename_axis('hour').rename_axis('user', axis='columns')
+    countsbyhr = pd.concat([countsbyhr,nomsgdf])
+
 
 outlst = []
 for i in list(countsbyhr.columns):
@@ -258,6 +269,15 @@ spoke_labels_hod = datahod.pop(0)
 
 
 # generate radar plot data by dow
+counts_user_dow = df.groupby(["dow","user"]).count()['body'].unstack(fill_value=0)
+dowlst = list(counts_user_dow.index)
+alldowlst = list(perdelta(0,7,1))
+nomsgdow = list(compress(alldowlst,  [i not in dowlst for i in alldowlst]))
+if(len(nomsgdow) > 0): 
+    nomsgdf = pd.DataFrame(dict([(i,[0]*len(nomsgdow)) for i in list(counts_user_dow.columns)]),index=nomsgdow)
+    nomsgdf = nomsgdf.rename_axis('dow').rename_axis('user', axis='columns')
+    counts_user_dow = pd.concat([counts_user_dow,nomsgdf])
+
 outlst = []
 for i in list(counts_user_dow.columns):
     userlst = list(counts_user_dow[i])[::-1]
@@ -335,8 +355,8 @@ weekplot.set_title('Message Frequency By Week', size='xx-large',horizontalalignm
 # radar 1 - day of week
 ax3.set_title('By Day of Week', size='xx-large', position=(0.5, 1.15),
              horizontalalignment='center', verticalalignment='center',color=globgrey)
-ax3.set_ylim(0,1400)
-ax3.set_rgrids([200,600,1000,1400])
+# ax3.set_ylim(0,1400)
+# ax3.set_rgrids([200,600,1000,1400])
 for d, color in zip(datadow[0][1], colors):
     ax3.plot(theta_dow, d, color=color)
     ax3.fill(theta_dow, d, facecolor=color, alpha=0.5)
@@ -346,8 +366,8 @@ ax3.set_thetagrids(np.degrees(theta_dow),spoke_labels_dow)
 # radar 2 - hour of day 
 ax4.set_title('By Hour of Day', size='xx-large', position=(0.5, 1.15),
              horizontalalignment='center', verticalalignment='center',color=globgrey)
-ax4.set_ylim(0,700)
-ax4.set_rgrids([100,300,500,700],angle=340)
+# ax4.set_ylim(0,700)
+# ax4.set_rgrids([100,300,500,700],angle=340)
 for d, color in zip(datahod[0][1], colors):
     ax4.plot(theta_hod, d, color=color)
     ax4.fill(theta_hod, d, facecolor=color, alpha=0.5)
