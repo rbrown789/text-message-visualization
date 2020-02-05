@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
+from os import path
 
 
 def tagortext (x):
@@ -32,34 +33,48 @@ def parsebody (body):
     return(out)        
     
 
-def fbhtml_to_df ():
+def fbhtml_to_df (save=False):
     root = tk.Tk()
     root.withdraw()
     
+    # dialog to choose path
     file_path = filedialog.askopenfilename()
-    print(file_path)
+    dirnm = path.dirname(file_path)
+    filepref = path.splitext(file_path)[0]
     
-    
-    # file_path = "G:/My Drive/Message Visualisation/fbhtmlmessage_aubre.html"
+    # implement checks for correct file type
+        
+    # open and parse with beatufiul soup
     page = open(file_path,encoding='utf-8').read()
     fbsoup = BeautifulSoup(page,features="lxml")
     
+    # could be used to throw errors if not a FB html
+    # tst = fbsoup.find_all("div",class_="_2t-a _26aw _5rmj _50ti _2s1")      
+    
+    
     # uses the div class value to identify all messages
-    msgdivs = fbsoup.find_all("div", class_="pam _3-95 _2pi0 _2lej uiBoxWhite noborder")
+    # msgdivs = fbsoup.find_all("div", class_="pam _3-95 _2pi0 _2lej uiBoxWhite noborder")
     namedivs = fbsoup.find_all("div",class_="_3-96 _2pio _2lek _2lel")
     datedivs = fbsoup.find_all("div",class_="_3-94 _2lem")
     txtdivs = fbsoup.find_all("div",class_="_3-96 _2let")
     
+    if(len(datedivs) > len(txtdivs)): # group conversations have an extra date div at the beginning
+        datedivs = datedivs[1:]
+    
     # grab the name and date-timestamp for each message
     users = [i.contents[0] for i in namedivs]
     dates = [i.contents[0] for i in datedivs]
-    txts = [parsebody(i.div.contents[1].contents) for i in txtdivs]
-    
+    txts = [parsebody(i.div.contents[1].contents) for i in txtdivs]    
     
     # save to dataframe and export
     outdf = pd.DataFrame({'user':users,'datetimestr':dates,'body':txts})
-    return(outdf)
+    
+    if(save):
+        outdf.to_csv(path.join(dirnm,filepref) +'.csv',encoding='utf-8',index=False)
+        
+        
+    return({'df':outdf,'filepref':filepref,'dirpath':dirnm})
 
 
 if __name__ == '__main__':
-    fbhtml_to_df()
+    fbhtml_to_df(save=True)
