@@ -43,7 +43,6 @@ cmap = cm.get_cmap('tab10', nuser)
 colors = [matplotlib.colors.rgb2hex(cmap(i)[:3]) for i in range(cmap.N)]
 
 
-
 def radar_factory(num_vars, frame='circle'):
     """Create a radar chart with `num_vars` axes.
 
@@ -184,7 +183,6 @@ def wc_colorgen(word=None, font_size=None, position=None,  orientation=None,
 ######################################################################################################
 
 ## Generate WordClouds ###
-
 stopwords = set(STOPWORDS)
 stopwords.update(["go","going","probably","will","some","back","will"])
 
@@ -207,6 +205,7 @@ emojiwc = WordCloud(background_color="black", width=700,height=600,
 
 ##########################################################################################################
 
+## Generate data for message frequency by week plot ##
 df['date'] = df['datetime'].dt.date
 df['dow'] = df['datetime'].dt.dayofweek
 df['hour'] = df.datetime.dt.hour
@@ -227,10 +226,12 @@ allmos = [i.month for i in alldatelst]
 xticklocs = list(compress(alldatelst,[alldays[i]==1 and allmos[i] in [1,7] for i in range(0,len(alldatelst))]))
 xticklabs = [i.strftime("%m/%y") for i in xticklocs]
 
-## week plot
+## Group data by week ##
 df['datemin7'] = pd.to_datetime(df['date']) - pd.to_timedelta(7, unit='d')
 counts_user_wk = df.groupby([pd.Grouper(key='datemin7', freq='W-MON'),'user']).count()['body'].unstack(fill_value=0)
 wkdtlst = [i.to_pydatetime().date() for i in list(counts_user_wk.index)]
+
+## fill in weeks that have zero messages for all users ##
 counts_user_wk.index = wkdtlst
 counts_user_wk = counts_user_wk.rename_axis('date').rename_axis('user', axis='columns') 
 allwkdtlst = list(perdelta(min(wkdtlst),max(wkdtlst),timedelta(days=7)))
@@ -245,6 +246,8 @@ counts_user_wk = pd.concat([counts_user_wk,nomsgwkdf])
 countsbyhr = df.groupby(['hour','user']).count()['body'].unstack(fill_value=0)
 hrlst = list(countsbyhr.index)
 allhrlst = list(perdelta(0,24,1))
+
+# fill in any hours that have no messages #
 nomsghrs = list(compress(allhrlst,  [i not in hrlst for i in allhrlst]))
 if(len(nomsghrs) > 0): 
     nomsgdf = pd.DataFrame(dict([(i,[0]*len(nomsghrs)) for i in list(countsbyhr.columns)]),index=nomsghrs)
@@ -273,6 +276,8 @@ counts_user_dow = df.groupby(["dow","user"]).count()['body'].unstack(fill_value=
 dowlst = list(counts_user_dow.index)
 alldowlst = list(perdelta(0,7,1))
 nomsgdow = list(compress(alldowlst,  [i not in dowlst for i in alldowlst]))
+
+# fill in days of week that have no messages
 if(len(nomsgdow) > 0): 
     nomsgdf = pd.DataFrame(dict([(i,[0]*len(nomsgdow)) for i in list(counts_user_dow.columns)]),index=nomsgdow)
     nomsgdf = nomsgdf.rename_axis('dow').rename_axis('user', axis='columns')
@@ -304,6 +309,9 @@ wordpermsg = 'Words/Msg: ' + str(round(sum(df.nwords)/df.shape[0],2))
 totemoji = 'Total Emojis: ' + str(len(emojisonly))
 
 ##########################################################################################################
+
+
+####### Build the Plot #########
 
 # arrange figures
 globgrey = '#c2c2c2'
@@ -394,5 +402,8 @@ ax7.text(0.5, 0.75, totdays, fontsize=fsize,color=globgrey, horizontalalignment=
 ax7.text(0.5, 0.45, totmess, fontsize=fsize,color=globgrey, horizontalalignment='center')
 ax7.text(0.5, 0.15, totwrds, fontsize=fsize,color=globgrey, horizontalalignment='center')
 
+################################################################################################
+
+# save the figure
 fig.savefig(path.join(dirnm,filepref) +'.png',dpi=500)
 
